@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>792</width>
+    <height>660</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Прогнозирование процесса флотации</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QMainWindow, QWidget {
+    background: #e6e6e6;
+    color: #222222;
+    font: 10pt &quot;Segoe UI&quot;;
+}
+QTabWidget::pane {
+    border: 0px;
+    background: #f2f2f2;
+}
+QTabBar::tab {
+    background: #d0d0d0;
+    padding: 8px 22px;
+    min-width: 120px;
+    border: 0px;
+}
+QTabBar::tab:selected {
+    background: #efefef;
+}
+QGroupBox {
+    background: #d6d6d6;
+    border: 0px solid #b8b8b8;
+    margin-top: 18px;
+    padding: 12px;
+    font-weight: bold;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0 4px;
+}
+QLabel {
+    background: transparent;
+}
+QLineEdit, QComboBox {
+    background: #c7c7c7;
+    border: 1px solid #bdbdbd;
+    min-height: 24px;
+    padding: 2px 6px;
+}
+QLineEdit:disabled, QComboBox:disabled, QPushButton:disabled {
+    color: #999999;
+    background: #dcdcdc;
+}
+QPushButton {
+    background: #d4d4d4;
+    border: 1px solid #c7c7c7;
+    min-height: 30px;
+    padding: 4px 16px;
+}
+QPushButton:hover {
+    background: #dddddd;
+}
+QPushButton#btnCalculate, QPushButton#btnRunOptimization {
+    background: #0078d7;
+    color: white;
+    font-weight: bold;
+    border: 0px;
+}
+QPushButton#btnCalculate:hover, QPushButton#btnRunOptimization:hover {
+    background: #0a84e8;
+}
+QPushButton#btnLoadExperiment {
+    background: #76a7d3;
+    color: white;
+    border: 0px;
+    text-align: left;
+    padding-left: 12px;
+}
+QPushButton#btnLoadTraining {
+    background: #e8eef8;
+    color: #333333;
+    border: 0px;
+    text-align: left;
+    padding-left: 12px;
+}
+QTableWidget {
+    background: #f7f7f7;
+    gridline-color: #555555;
+    border: 1px solid #444444;
+}
+QHeaderView::section {
+    background: #d9d9d9;
+    border: 1px solid #888888;
+    padding: 4px;
+    font-weight: bold;
+}
+QLineEdit#searchEdit {
+    background: #d9d9d9;
+    border: 0px;
+}
+QLabel#resultValue {
+    background: #ffffff;
+    color: #0078d7;
+    font-size: 36pt;
+    font-weight: bold;
+    qproperty-alignment: AlignCenter;
+}
+QFrame#messageFrame {
+    background: #d6d6d6;
+    border: 0px;
+}</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tabForecast">
+       <attribute name="title">
+        <string>Прогноз</string>
+       </attribute>
+       <layout class="QGridLayout" name="forecastGrid">
+        <property name="leftMargin">
+         <number>24</number>
+        </property>
+        <property name="topMargin">
+         <number>18</number>
+        </property>
+        <property name="rightMargin">
+         <number>24</number>
+        </property>
+        <property name="bottomMargin">
+         <number>18</number>
+        </property>
+        <property name="horizontalSpacing">
+         <number>30</number>
+        </property>
+        <property name="verticalSpacing">
+         <number>14</number>
+        </property>
+        <item row="0" column="1">
+         <widget class="QGroupBox" name="groupAlgorithm">
+          <property name="title">
+           <string/>
+          </property>
+          <layout class="QVBoxLayout" name="algorithmLayout">
+           <property name="leftMargin">
+            <number>9</number>
+           </property>
+           <property name="topMargin">
+            <number>5</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="labelAlgorithm">
+             <property name="font">
+              <font>
+               <family>Segoe UI</family>
+               <pointsize>12</pointsize>
+               <weight>75</weight>
+               <italic>false</italic>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; font-weight:bold</string>
+             </property>
+             <property name="text">
+              <string>Алгоритм прогнозирования</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="comboModel">
+             <item>
+              <property name="text">
+               <string>Ансамбль моделей (по ум.)</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Random Forest</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Gradient Boosting</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Linear Regression</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnCompareModels">
+             <property name="text">
+              <string>Сравнить модели</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelData">
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; font-weight:bold</string>
+             </property>
+             <property name="text">
+              <string>Данные</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnLoadExperiment">
+             <property name="text">
+              <string>Загрузить экспериментальные данные (.xlsx/.csv)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnLoadTraining">
+             <property name="text">
+              <string>Загрузить файл для обучения модели</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QGroupBox" name="groupParameters">
+          <property name="title">
+           <string/>
+          </property>
+          <layout class="QGridLayout" name="parametersGrid">
+           <property name="spacing">
+            <number>10</number>
+           </property>
+           <item row="4" column="2">
+            <widget class="QLabel" name="unitCollector">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>г/т</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="editCollectorFlow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="placeholderText">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2">
+            <widget class="QLabel" name="unitAir">
+             <property name="text">
+              <string>%</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="labelCollector">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Расход собирателя</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="labelFrequency">
+             <property name="text">
+              <string>Частота вращения импеллера</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QLabel" name="unitFrequency">
+             <property name="text">
+              <string>Гц</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="editAirFlow">
+             <property name="placeholderText">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="labelAir">
+             <property name="text">
+              <string>Расход воздуха</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="editImpellerFrequency">
+             <property name="placeholderText">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="labelTime">
+             <property name="text">
+              <string>Время флотации</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="unitTime">
+             <property name="text">
+              <string>мин</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="editFlotationTime">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="placeholderText">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2">
+            <widget class="QLabel" name="unitFrother">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>г/т</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="labelFrother">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Расход пенообразователя</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="QLineEdit" name="editFrotherFlow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="placeholderText">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="label_2">
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; font-weight:bold</string>
+             </property>
+             <property name="text">
+              <string>Параметры процесса флотации</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QGroupBox" name="groupResult">
+          <property name="title">
+           <string/>
+          </property>
+          <layout class="QVBoxLayout" name="resultLayout">
+           <property name="topMargin">
+            <number>5</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="labelResult">
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; font-weight:bold</string>
+             </property>
+             <property name="text">
+              <string>Результат</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelResultTitle">
+             <property name="text">
+              <string>βcu Концентрат, %</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="resultValue">
+             <property name="text">
+              <string>12.71</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="2">
+         <widget class="QFrame" name="messageFrame">
+          <layout class="QVBoxLayout" name="messageLayout">
+           <property name="leftMargin">
+            <number>12</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="rightMargin">
+            <number>12</number>
+           </property>
+           <property name="bottomMargin">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="labelMessages">
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; font-weight:bold</string>
+             </property>
+             <property name="text">
+              <string>Сообщения</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="statusMessage">
+             <property name="styleSheet">
+              <string notr="true">background:#f2f2f2; padding:4px;</string>
+             </property>
+             <property name="text">
+              <string>&lt;span style=&quot;color:#ff5a5a;&quot;&gt;Ошибка&lt;/span&gt; + пояснение/&lt;span style=&quot;color:#3bb54a;&quot;&gt;успех&lt;/span&gt;/&lt;span style=&quot;color:#f0a800;&quot;&gt;предупреждение&lt;/span&gt;</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QGroupBox" name="groupActions">
+          <property name="title">
+           <string/>
+          </property>
+          <property name="flat">
+           <bool>false</bool>
+          </property>
+          <layout class="QVBoxLayout" name="actionsLayout">
+           <property name="spacing">
+            <number>17</number>
+           </property>
+           <property name="leftMargin">
+            <number>9</number>
+           </property>
+           <property name="topMargin">
+            <number>4</number>
+           </property>
+           <property name="bottomMargin">
+            <number>9</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; font-weight:bold</string>
+             </property>
+             <property name="text">
+              <string>Действия</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnCalculate">
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; font-weight:bold</string>
+             </property>
+             <property name="text">
+              <string>Рассчитать прогноз</string>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>16</width>
+               <height>16</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnOptimization">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">font: 12pt &quot;Segoe UI&quot;; </string>
+             </property>
+             <property name="text">
+              <string>Оптимизация параметров</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabHistory">
+       <attribute name="title">
+        <string>История расчётов</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="historyLayout">
+        <property name="leftMargin">
+         <number>24</number>
+        </property>
+        <property name="topMargin">
+         <number>18</number>
+        </property>
+        <property name="rightMargin">
+         <number>24</number>
+        </property>
+        <property name="bottomMargin">
+         <number>18</number>
+        </property>
+        <item>
+         <widget class="QLineEdit" name="searchEdit">
+          <property name="placeholderText">
+           <string>Поиск</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableHistory">
+          <property name="rowCount">
+           <number>12</number>
+          </property>
+          <property name="columnCount">
+           <number>4</number>
+          </property>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <row/>
+          <column>
+           <property name="text">
+            <string>Дата и время</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Параметры</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Результат, %</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Модель</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="historyButtonsLayout">
+          <item>
+           <spacer name="historyLeftSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnOpenHistory">
+            <property name="text">
+             <string>Открыть</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="historySpacer1">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>30</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnDeleteHistory">
+            <property name="text">
+             <string>Удалить</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="historySpacer2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>30</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnExportCsv">
+            <property name="text">
+             <string>Экспорт в CSV</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="historyRightSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>OptimizationDialog</class>
+ <widget class="QDialog" name="OptimizationDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>493</width>
+    <height>460</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Оптимизация параметров</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog, QWidget { background:#eeeeee; font:10pt &quot;Segoe UI&quot;; color:#222; }
+QGroupBox { background:#d6d6d6; border:0px; margin-top:18px; padding:12px; font-weight:bold; }
+QGroupBox::title { subcontrol-origin:margin; left:8px; padding:0 4px; }
+QLineEdit, QComboBox { background:#c7c7c7; border:1px solid #bdbdbd; min-height:24px; padding:2px 6px; }
+QPushButton { background:#d4d4d4; border:1px solid #c7c7c7; min-height:30px; padding:4px 16px; }
+QPushButton#btnRunOptimization { background:#0078d7; color:white; font-weight:bold; border:0px; }</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="titleLabel">
+     <property name="styleSheet">
+      <string notr="true">font-weight:bold; font-size:12pt;</string>
+     </property>
+     <property name="text">
+      <string>Оптимизация параметров</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupTarget">
+     <property name="title">
+      <string>Целевая функция</string>
+     </property>
+     <layout class="QVBoxLayout" name="targetLayout">
+      <item>
+       <widget class="QLabel" name="targetLabel">
+        <property name="text">
+         <string>Максимизация βcu Концентрат, %</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupConstraints">
+     <property name="title">
+      <string>Ограничения параметров</string>
+     </property>
+     <layout class="QGridLayout" name="constraintsGrid">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelTime">
+        <property name="text">
+         <string>Время флотации, мин</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="fromTime">
+        <property name="text">
+         <string>от</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLineEdit" name="editTimeMin"/>
+      </item>
+      <item row="0" column="3">
+       <widget class="QLabel" name="toTime">
+        <property name="text">
+         <string>до</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QLineEdit" name="editTimeMax"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelFrequency">
+        <property name="text">
+         <string>Частота вращения импеллера, Гц</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="fromFrequency">
+        <property name="text">
+         <string>от</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLineEdit" name="editFrequencyMin"/>
+      </item>
+      <item row="1" column="3">
+       <widget class="QLabel" name="toFrequency">
+        <property name="text">
+         <string>до</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QLineEdit" name="editFrequencyMax"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelAir">
+        <property name="text">
+         <string>Расход воздуха, %</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="fromAir">
+        <property name="text">
+         <string>от</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLineEdit" name="editAirMin"/>
+      </item>
+      <item row="2" column="3">
+       <widget class="QLabel" name="toAir">
+        <property name="text">
+         <string>до</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="4">
+       <widget class="QLineEdit" name="editAirMax"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelCollector">
+        <property name="text">
+         <string>Расход собирателя, г/т</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLabel" name="fromCollector">
+        <property name="text">
+         <string>от</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QLineEdit" name="editCollectorMin"/>
+      </item>
+      <item row="3" column="3">
+       <widget class="QLabel" name="toCollector">
+        <property name="text">
+         <string>до</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="4">
+       <widget class="QLineEdit" name="editCollectorMax"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="labelFrother">
+        <property name="text">
+         <string>Расход пенообразователя, г/т</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLabel" name="fromFrother">
+        <property name="text">
+         <string>от</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QLineEdit" name="editFrotherMin"/>
+      </item>
+      <item row="4" column="3">
+       <widget class="QLabel" name="toFrother">
+        <property name="text">
+         <string>до</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="4">
+       <widget class="QLineEdit" name="editFrotherMax"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="methodLayout">
+     <item>
+      <widget class="QGroupBox" name="groupMethod">
+       <property name="title">
+        <string>Метод оптимизации</string>
+       </property>
+       <layout class="QVBoxLayout" name="methodBoxLayout">
+        <item>
+         <widget class="QComboBox" name="comboOptimizationMethod">
+          <item>
+           <property name="text">
+            <string>метод оптимизации</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Grid Search</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Bayesian Optimization</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnRunOptimization">
+       <property name="text">
+        <string>Запустить оптимизацию</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

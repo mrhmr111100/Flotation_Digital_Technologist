@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CompareModelsDialog</class>
+ <widget class="QDialog" name="CompareModelsDialog">
+  <property name="geometry"><rect><x>0</x><y>0</y><width>620</width><height>310</height></rect></property>
+  <property name="windowTitle"><string>Сравнение моделей</string></property>
+  <property name="styleSheet"><string notr="true">QDialog, QWidget { background:#eeeeee; font:10pt "Segoe UI"; color:#222; }
+QTableWidget { background:#f8f8f8; gridline-color:#555; border:1px solid #444; }
+QHeaderView::section { background:#d8d8d8; border:1px solid #888; padding:4px; font-weight:bold; }
+QPushButton { background:#d4d4d4; border:1px solid #c7c7c7; min-height:28px; padding:4px 18px; }</string></property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item><widget class="QLabel" name="titleLabel"><property name="text"><string>Сравнение моделей</string></property><property name="styleSheet"><string notr="true">font-weight:bold; font-size:12pt;</string></property></widget></item>
+   <item>
+    <widget class="QTableWidget" name="tableCompare">
+     <property name="columnCount"><number>5</number></property>
+     <property name="rowCount"><number>6</number></property>
+     <attribute name="horizontalHeaderStretchLastSection"><bool>true</bool></attribute>
+     <column><property name="text"><string>Модель</string></property></column>
+     <column><property name="text"><string>Результат, %</string></property></column>
+     <column><property name="text"><string>RMSE</string></property></column>
+     <column><property name="text"><string>R^2</string></property></column>
+     <column><property name="text"><string>Время предсказания</string></property></column>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonsLayout">
+     <item><spacer name="spacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+     <item><widget class="QPushButton" name="btnCloseCompare"><property name="text"><string>Закрыть</string></property></widget></item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
