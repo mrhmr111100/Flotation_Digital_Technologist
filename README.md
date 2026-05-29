@@ -27,6 +27,7 @@ GUI-приложение на PyQt5 для прогнозирования пар
 
 ```text
 main_flotation.py
+ml_models.py
 digital_technologist.ui
 dialog_compare_models.ui
 dialog_optimization.ui
