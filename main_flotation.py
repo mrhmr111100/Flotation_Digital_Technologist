@@ -24,6 +24,8 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
+from ml_models import ModelError, train_and_predict
+
 try:
     import pandas as pd
     import numpy as np
@@ -125,6 +127,7 @@ class MainWindow(QMainWindow):
         self.target_column = None
         self.feature_columns = []
         self.column_select_mode = "target"
+        self.last_prediction_result = None
 
         self._set_numeric_validators()
         self._setup_forecast_tab_old_design()
@@ -258,7 +261,7 @@ class MainWindow(QMainWindow):
         self.lblTrainingStatus.setWordWrap(True)
         main_layout.addWidget(self.lblTrainingStatus)
 
-        self.tabWidget.insertTab(1, self.tabTraining, "Обучение")
+        self.tabWidget.insertTab(1, self.tabTraining, "Обучение и данные")
 
     def _enable_parameter_fields(self):
         for widget_name in self.PARAMETER_WIDGETS_TO_ENABLE:
@@ -464,7 +467,7 @@ class MainWindow(QMainWindow):
         self.set_training_status(
             "Выбор сохранён. "
             f"Целевая переменная: {self.target_column}. Параметров выбрано: {len(self.feature_columns)}. "
-            "При расчёте прогноза будет использована простая линейная модель по выбранным столбцам."
+            "При расчёте прогноза будет использована модель, выбранная в списке алгоритмов."
         )
 
     def validate_training_selection(self):
@@ -481,13 +484,22 @@ class MainWindow(QMainWindow):
         data = self.training_df[selected_columns].copy()
 
         for column in selected_columns:
+            data[column] = (
+                data[column]
+                .astype(str)
+                .str.replace(",", ".", regex=False)
+                .str.replace("\u00a0", "", regex=False)
+            )
             data[column] = pd.to_numeric(data[column], errors="coerce")
 
         cleaned = data.dropna()
+
         if cleaned.empty:
             return False, "В выбранных столбцах нет числовых строк после очистки пропусков."
+
         if len(cleaned) < 3:
             return False, "Слишком мало числовых строк для обучения модели. Нужно минимум 3."
+
         return True, f"Данные корректны. Числовых строк после очистки: {len(cleaned)}."
 
 
@@ -509,12 +521,13 @@ class MainWindow(QMainWindow):
         self.add_history_row(values, prediction, self.comboModel.currentText())
 
         if source == "training_model":
-            self.set_forecast_status("Успех", "прогноз рассчитан по выбранным обучающим столбцам", "#3bb54a")
+            model_name = self.comboModel.currentText()
+            self.set_forecast_status("Успех", f"прогноз рассчитан моделью: {model_name}", "#3bb54a")
         else:
             self.set_forecast_status(
-                "Предупреждение",
-                "обучающая модель не выбрана; использована демонстрационная формула",
-                "#ff9900",
+            "Предупреждение",
+            "обучающая модель не выбрана; использована демонстрационная формула",
+            "#ff9900",
             )
 
     def collect_forecast_values(self):
@@ -537,33 +550,32 @@ class MainWindow(QMainWindow):
         return values
 
     def predict_concentrate(self, values):
-        is_valid, _ = self.validate_training_selection() if self.training_df is not None else (False, "")
-        if is_valid and np is not None:
-            try:
-                return self.predict_by_training_table(values), "training_model"
-            except Exception as exc:
-                return None, f"не удалось рассчитать прогноз по обучающей таблице: {exc}"
+        is_valid, message = self.validate_training_selection() if self.training_df is not None else (False, "")
 
-        return self.demo_formula(values), "demo_formula"
+        if not is_valid:
+            self.last_prediction_result = None
+            return self.demo_formula(values), "demo_formula"
 
-    def predict_by_training_table(self, values):
-        selected_columns = [self.target_column] + self.feature_columns
-        data = self.training_df[selected_columns].copy()
-        for column in selected_columns:
-            data[column] = pd.to_numeric(data[column], errors="coerce")
-        data = data.dropna()
+        try:
+            input_values = self.build_feature_vector_for_prediction(values)
 
-        x_train = data[self.feature_columns].to_numpy(dtype=float)
-        y_train = data[self.target_column].to_numpy(dtype=float)
+            self.last_prediction_result = train_and_predict(
+                df=self.training_df,
+                target_column=self.target_column,
+                feature_columns=self.feature_columns,
+                input_values=input_values,
+                model_name=self.comboModel.currentText(),
+            )
 
-        x_input = self.build_feature_vector_for_prediction(values)
-        if len(x_input) != len(self.feature_columns):
-            raise ValueError("число входных параметров не совпадает с выбранными столбцами")
+            return self.last_prediction_result.prediction, "training_model"
 
-        x_aug = np.column_stack([np.ones(len(x_train)), x_train])
-        coefficients, *_ = np.linalg.lstsq(x_aug, y_train, rcond=None)
-        input_aug = np.array([1.0] + x_input, dtype=float)
-        return float(input_aug @ coefficients)
+        except ModelError as exc:
+            self.last_prediction_result = None
+            return None, str(exc)
+
+        except Exception as exc:
+            self.last_prediction_result = None
+            return None, f"не удалось выполнить расчёт модели: {exc}"
 
     def build_feature_vector_for_prediction(self, values):
         field_order = [field for field in self.FORECAST_FIELDS if field in values]
