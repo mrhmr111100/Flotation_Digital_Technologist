@@ -489,6 +489,7 @@ class MainWindow(QMainWindow):
                 .astype(str)
                 .str.replace(",", ".", regex=False)
                 .str.replace("\u00a0", "", regex=False)
+                .str.strip()
             )
             data[column] = pd.to_numeric(data[column], errors="coerce")
 
@@ -501,7 +502,6 @@ class MainWindow(QMainWindow):
             return False, "Слишком мало числовых строк для обучения модели. Нужно минимум 3."
 
         return True, f"Данные корректны. Числовых строк после очистки: {len(cleaned)}."
-
 
     def calculate_forecast(self):
         values = self.collect_forecast_values()
@@ -521,13 +521,17 @@ class MainWindow(QMainWindow):
         self.add_history_row(values, prediction, self.comboModel.currentText())
 
         if source == "training_model":
-            model_name = self.comboModel.currentText()
+            model_name = (
+                self.last_prediction_result.model_name
+                if self.last_prediction_result is not None
+                else self.comboModel.currentText()
+            )
             self.set_forecast_status("Успех", f"прогноз рассчитан моделью: {model_name}", "#3bb54a")
         else:
             self.set_forecast_status(
-            "Предупреждение",
-            "обучающая модель не выбрана; использована демонстрационная формула",
-            "#ff9900",
+                "Предупреждение",
+                "обучающая модель не выбрана; использована демонстрационная формула",
+                "#ff9900",
             )
 
     def collect_forecast_values(self):
