@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from PyQt5 import uic
-from PyQt5.QtCore import QLocale, Qt
+from PyQt5.QtCore import QLocale, Qt, QTimer
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -24,7 +24,38 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from ml_models import ModelError, train_and_predict
+try:
+    # Пытаемся подключить плагинный бэкенд (модули из внешних файлов)
+    from model_backend import register_common_modules, train_and_predict, available_models, register_module
+    import ml_models as _ml_models
+    ModelError = _ml_models.ModelError
+
+    # Регистрируем стандартные модули при старте (если доступны в окружении)
+    try:
+        register_common_modules()
+    except Exception:
+        pass
+
+    # Регистрируем модели напрямую из текущей папки проекта
+    try:
+        _repo_dir = Path(__file__).resolve().parent
+        for _f in ['RandomForest.py', 'GradientBoosting.py', 'PLS.py', 'GPR.py', 'MLP.py', 'LinearRegression.py']:
+            p = _repo_dir / _f
+            try:
+                if p.exists():
+                    register_module(str(p), alias=p.stem)
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    try:
+        print('Available model plugins:', available_models())
+    except Exception:
+        pass
+except Exception:
+    # Фоллбек на встроенный простой бэкенд
+    from ml_models import ModelError, train_and_predict
 
 try:
     import pandas as pd
@@ -104,11 +135,11 @@ class MainWindow(QMainWindow):
     }
 
     FIELD_KEYWORDS = {
-        "editFlotationTime": ["время", "time", "flotation"],
-        "editImpellerFrequency": ["частота", "frequency", "impeller", "вращ"],
-        "editAirFlow": ["воздух", "air"],
-        "editCollectorFlow": ["собират", "collector"],
-        "editFrotherFlow": ["пенообраз", "frother"],
+        "editFlotationTime": ["время", "time", "flotation", "флотац", "флотации"],
+        "editImpellerFrequency": ["частота", "frequency", "impeller", "вращ", "импелл"],
+        "editAirFlow": ["воздух", "air", "расход воздуха", "airflow"],
+        "editCollectorFlow": ["собират", "collector", "собиратель"],
+        "editFrotherFlow": ["пенообраз", "frother", "вспенив", "вспен"],
     }
 
     PARAMETER_WIDGETS_TO_ENABLE = FORECAST_FIELDS + [
@@ -135,6 +166,38 @@ class MainWindow(QMainWindow):
         self._prepare_history_table()
         self._connect_history_buttons()
 
+        # Заполняем список алгоритмов в комбобоксе (`comboModel`) на основе доступных плагинов
+        try:
+            if hasattr(self, 'comboModel'):
+                items = ["Ансамбль моделей (по ум.)"]
+                try:
+                    # available_models импортируется через model_backend, если он подключён
+                    plugin_names = available_models()
+                except Exception:
+                    plugin_names = []
+
+                def human_name(key: str) -> str:
+                    # Если ключ полностью в верхнем регистре (PLS, GPR, MLP), оставляем как есть
+                    if str(key).isupper():
+                        return str(key)
+                    # Разделяем camel case / подчеркивания в более читаемую форму
+                    import re
+                    s = re.sub(r'(_|-)+', ' ', key)
+                    s = re.sub(r'([a-z])([A-Z])', r'\1 \2', s)
+                    return s.replace('  ', ' ').strip().title()
+
+                for k in plugin_names:
+                    items.append(human_name(k))
+
+                # Если нет зарегистрированных плагинов — добавим стандартные опции
+                if len(items) == 1:
+                    items.extend(["Random Forest", "Gradient Boosting", "Linear Regression"])
+
+                self.comboModel.clear()
+                self.comboModel.addItems(items)
+        except Exception:
+            pass
+
         self.set_forecast_status("Готово", "заполните параметры и нажмите «Рассчитать прогноз»", "#3b6fb6")
 
 
@@ -143,8 +206,40 @@ class MainWindow(QMainWindow):
         self.btnCalculate.clicked.connect(self.calculate_forecast)
         self.btnCompareModels.clicked.connect(self.open_compare_dialog)
         self.btnOptimization.clicked.connect(self.open_optimization_dialog)
+        # Включаем кнопку оптимизации позже — после расчёта
         self.btnOptimization.setEnabled(False)
-        self._hide_forecast_data_controls_keep_space()
+        # Включаем кнопку расчёта на всякий случай
+        self.btnCalculate.setEnabled(True)
+        # Активируем все поля прогноза и связанные метки/юниты
+        try:
+            self._enable_parameter_fields()
+        except Exception:
+            # на случай, если некоторые виджеты отсутствуют в UI
+            for field_name in self.FORECAST_FIELDS:
+                widget = getattr(self, field_name, None)
+                if widget is not None:
+                    try:
+                        widget.setEnabled(True)
+                    except Exception:
+                        pass
+            for extra in ["labelCollector", "labelFrother", "unitCollector", "unitFrother"]:
+                w = getattr(self, extra, None)
+                if w is not None:
+                    try:
+                        w.setEnabled(True)
+                    except Exception:
+                        pass
+
+        # Следим за изменениями в полях ввода и сбрасываем предыдущий результат
+        for field_name in self.FORECAST_FIELDS:
+            widget = getattr(self, field_name, None)
+            if widget is not None and hasattr(widget, 'textChanged'):
+                widget.textChanged.connect(self.on_forecast_input_changed)
+
+    def on_forecast_input_changed(self, _value):
+        if hasattr(self, 'resultValue'):
+            self.resultValue.setText('—')
+        self.set_forecast_status('Изменение параметров', 'Нажмите «Рассчитать прогноз» для обновления результата.', '#3b6fb6')
 
     def _hide_forecast_data_controls_keep_space(self):
         
@@ -267,7 +362,14 @@ class MainWindow(QMainWindow):
         for widget_name in self.PARAMETER_WIDGETS_TO_ENABLE:
             widget = getattr(self, widget_name, None)
             if widget is not None:
-                widget.setEnabled(True)
+                try:
+                    widget.setEnabled(True)
+                except Exception:
+                    pass
+                try:
+                    widget.setReadOnly(False)
+                except Exception:
+                    pass
 
     def _set_numeric_validators(self):
         validator = QDoubleValidator(self)
@@ -313,7 +415,12 @@ class MainWindow(QMainWindow):
         last_error = None
         for encoding in ["utf-8-sig", "utf-8", "cp1251"]:
             try:
-                return pd.read_csv(file_path, sep=None, engine="python", encoding=encoding)
+                # Сначала пробуем явный разделитель точка с запятой — часто встречается в CSV из Excel
+                try:
+                    return pd.read_csv(file_path, sep=';', engine="python", encoding=encoding)
+                except Exception:
+                    # Если не сработало, пробуем автоопределение разделителя
+                    return pd.read_csv(file_path, sep=None, engine="python", encoding=encoding)
             except Exception as exc:
                 last_error = exc
         raise last_error
@@ -527,12 +634,6 @@ class MainWindow(QMainWindow):
                 else self.comboModel.currentText()
             )
             self.set_forecast_status("Успех", f"прогноз рассчитан моделью: {model_name}", "#3bb54a")
-        else:
-            self.set_forecast_status(
-                "Предупреждение",
-                "обучающая модель не выбрана; использована демонстрационная формула",
-                "#ff9900",
-            )
 
     def collect_forecast_values(self):
         values = {}
@@ -554,14 +655,21 @@ class MainWindow(QMainWindow):
         return values
 
     def predict_concentrate(self, values):
-        is_valid, message = self.validate_training_selection() if self.training_df is not None else (False, "")
+        if self.training_df is None:
+            self.last_prediction_result = None
+            return None, "Сначала загрузите файл с данными для обучения и выберите целевую переменную и параметры."
 
+        is_valid, message = self.validate_training_selection()
         if not is_valid:
             self.last_prediction_result = None
-            return self.demo_formula(values), "demo_formula"
+            return None, message
 
         try:
             input_values = self.build_feature_vector_for_prediction(values)
+
+
+
+            
 
             self.last_prediction_result = train_and_predict(
                 df=self.training_df,
@@ -594,7 +702,7 @@ class MainWindow(QMainWindow):
                 if not remaining:
                     raise ValueError(f"для столбца «{column}» нет введённого параметра")
                 field = remaining[0]
-
+            print(f"DEBUG MAPPING: column={column}, field={field}, value={values[field]}")
             vector.append(values[field])
             used_fields.add(field)
 
@@ -607,15 +715,6 @@ class MainWindow(QMainWindow):
                 if any(keyword in lower_name for keyword in keywords):
                     return field_name
         return None
-
-    def demo_formula(self, values):
-        # временная формула нужна только чтобы кнопка расчёта давала результат до подключения реальной модели
-        time_value = values.get("editFlotationTime", 0.0)
-        frequency = values.get("editImpellerFrequency", 0.0)
-        air = values.get("editAirFlow", 0.0)
-        collector = values.get("editCollectorFlow", 0.0)
-        frother = values.get("editFrotherFlow", 0.0)
-        return 10.0 + 0.05 * time_value + 0.01 * frequency + 0.02 * air + 0.003 * collector + 0.004 * frother
 
     def fill_forecast_fields_from_row(self, row):
         used_columns = set()
