@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QPushButton,
     QDialog,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -152,6 +153,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi(ui_path("digital_technologist.ui", "digital_technologist(4).ui", "digital_technologist(3).ui"), self)
+        self._apply_forecast_layout()
 
         self.forecast_df = None
         self.training_df = None
@@ -162,6 +164,7 @@ class MainWindow(QMainWindow):
 
         self._set_numeric_validators()
         self._setup_forecast_tab_old_design()
+        self._hide_forecast_data_controls_keep_space()
         self._build_training_tab()
         self._prepare_history_table()
         self._connect_history_buttons()
@@ -200,6 +203,89 @@ class MainWindow(QMainWindow):
 
         self.set_forecast_status("Готово", "заполните параметры и нажмите «Рассчитать прогноз»", "#3b6fb6")
 
+
+    def _apply_forecast_layout(self):
+        if not hasattr(self, 'forecastGrid'):
+            return
+
+        for widget_name in ["groupParameters", "groupAlgorithm", "groupActions", "groupResult"]:
+            widget = getattr(self, widget_name, None)
+            if widget is not None:
+                self.forecastGrid.removeWidget(widget)
+
+        self.forecastGrid.addWidget(self.groupParameters, 0, 0)
+        self.forecastGrid.addWidget(self.groupActions, 1, 0)
+
+        if not hasattr(self, 'forecastRightColumn'):
+            self.forecastRightColumn = QWidget(self.tabForecast)
+            right_layout = QVBoxLayout(self.forecastRightColumn)
+            right_layout.setContentsMargins(0, 0, 0, 0)
+            right_layout.setSpacing(0)
+            right_layout.addWidget(self.groupAlgorithm)
+            right_layout.addWidget(self.groupResult)
+        self.forecastGrid.addWidget(self.forecastRightColumn, 0, 1, 2, 1)
+        self.forecastGrid.setSpacing(0)
+        self.forecastGrid.setHorizontalSpacing(8)
+        self.forecastGrid.setVerticalSpacing(0)
+        self.forecastGrid.setAlignment(self.groupActions, Qt.AlignTop)
+        self.forecastGrid.setAlignment(self.forecastRightColumn, Qt.AlignTop)
+        self.forecastGrid.setColumnStretch(0, 1)
+        self.forecastGrid.setColumnStretch(1, 1)
+        self.forecastGrid.setRowStretch(0, 0)
+        self.forecastGrid.setRowStretch(1, 1)
+
+        self.groupParameters.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.groupAlgorithm.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.groupActions.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.groupResult.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.groupParameters.setMinimumHeight(0)
+        self.groupAlgorithm.setMinimumHeight(165)
+        self.groupAlgorithm.setMaximumHeight(16777215)
+        self.groupActions.setFixedHeight(165)
+        self.groupResult.setFixedHeight(261)
+        self.forecastRightColumn.setFixedHeight(426)
+
+        self.messageFrame.setMinimumHeight(120)
+        self.statusMessage.setWordWrap(True)
+
+        if hasattr(self, 'btnCompareModels'):
+            self.btnCompareModels.setMinimumHeight(42)
+        for button_name in ['btnCalculate', 'btnOptimization']:
+            button = getattr(self, button_name, None)
+            if button is not None:
+                button.setMinimumHeight(42)
+
+        for field_name in [
+            "editFlotationTime",
+            "editImpellerFrequency",
+            "editCollectorFlow",
+            "editFrotherFlow",
+            "editAirFlow",
+        ]:
+            field = getattr(self, field_name, None)
+            if field is not None:
+                field.setFixedWidth(90)
+
+        if hasattr(self, 'parametersGrid'):
+            rows = [
+                ("labelCollector", "editCollectorFlow", "unitCollector", 3),
+                ("labelFrother", "editFrotherFlow", "unitFrother", 4),
+                ("labelAir", "editAirFlow", "unitAir", 5),
+            ]
+            for label_name, field_name, unit_name, row_index in rows:
+                label = getattr(self, label_name, None)
+                field = getattr(self, field_name, None)
+                unit = getattr(self, unit_name, None)
+                if label is not None:
+                    self.parametersGrid.removeWidget(label)
+                    self.parametersGrid.addWidget(label, row_index, 0)
+                if field is not None:
+                    self.parametersGrid.removeWidget(field)
+                    self.parametersGrid.addWidget(field, row_index, 1)
+                if unit is not None:
+                    self.parametersGrid.removeWidget(unit)
+                    self.parametersGrid.addWidget(unit, row_index, 2)
 
     def _setup_forecast_tab_old_design(self):
 
