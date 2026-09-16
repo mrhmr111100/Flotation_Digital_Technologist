@@ -87,15 +87,21 @@ class CompareModelsDialog(QDialog):
         self.fill_demo_rows()
 
     def fill_demo_rows(self):
+        import random
+
         rows = [
-            ("Random Forest", "12.71", "0.42", "0.91", "0.03 c"),
-            ("Gradient Boosting", "12.55", "0.47", "0.89", "0.04 c"),
-            ("Linear Regression", "11.90", "0.71", "0.78", "0.01 c"),
+            ("Gaussian Process Regression (GPR)", "90.6", "0.303", "0.906", f"{random.uniform(0.01, 0.05):.2f} c"),
+            ("Gradient Boosting", "87.9", "0.343", "0.879", f"{random.uniform(0.02, 0.06):.2f} c"),
+            ("Random Forest", "72.2", "0.522", "0.722", f"{random.uniform(0.03, 0.08):.2f} c"),
+            ("MLP Regressor", "52.7", "0.680", "0.527", f"{random.uniform(0.04, 0.09):.2f} c"),
+            ("Lasso", "31.0", "0.821", "0.310", f"{random.uniform(0.05, 0.10):.2f} c"),
+            ("Ridge", "31.0", "0.821", "0.310", f"{random.uniform(0.05, 0.10):.2f} c"),
+            ("PLS Regression", "28.8", "0.835", "0.288", f"{random.uniform(0.06, 0.11):.2f} c"),
         ]
         self.tableCompare.setRowCount(max(self.tableCompare.rowCount(), len(rows)))
         for r, row in enumerate(rows):
             for c, value in enumerate(row):
-                self.tableCompare.setItem(r, c, QTableWidgetItem(value))
+                self.tableCompare.setItem(r, c, QTableWidgetItem(str(value)))
         self.tableCompare.resizeColumnsToContents()
 
 
