@@ -1,4 +1,5 @@
 import csv
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -492,10 +493,48 @@ class MainWindow(QMainWindow):
 
         suffix = Path(file_path).suffix.lower()
         if suffix in [".xlsx", ".xls"]:
-            return pd.read_excel(file_path)
-        if suffix == ".csv":
-            return self._read_csv_with_fallback(file_path)
-        raise ValueError("Поддерживаются только .xlsx, .xls и .csv")
+            df = pd.read_excel(file_path)
+        elif suffix == ".csv":
+            df = self._read_csv_with_fallback(file_path)
+        else:
+            raise ValueError("Поддерживаются только .xlsx, .xls и .csv")
+
+        return self._normalize_excel_column_names(df)
+
+    def _normalize_excel_column_names(self, df):
+        if df is None:
+            return df
+
+        replacement_map = {
+            '? Концентрат': 'Ɣ Концентрат',
+            '? Хвосты': 'Ɣ Хвосты',
+            '? Исходное': 'Ɣ Исходное',
+            '?Cu Концентрат': 'βCu Концентрат',
+            '?Cu': 'βCu',
+            '?Си Концентрат': 'βCu Концентрат',
+            '? Си Концентрат': 'βCu Концентрат',
+            '?Cu,': 'βCu,',
+            '? Концентрат,': 'Ɣ Концентрат,',
+            '? Хвосты,': 'Ɣ Хвосты,',
+            '? Исходное,': 'Ɣ Исходное,',
+        }
+
+        def normalize_name(name):
+            text = str(name)
+            for bad, good in replacement_map.items():
+                text = text.replace(bad, good)
+
+            text = text.replace('?', 'Ɣ') if 'Концентрат' in text or 'Хвосты' in text or 'Исходное' in text else text
+            text = text.replace('?', 'β') if 'Cu' in text or 'Си' in text else text
+
+            text = re.sub(r'(?i)^β\s*cu\b', 'βCu', text)
+            text = re.sub(r'(?i)^Ɣ\s*концентрат\b', 'Ɣ Концентрат', text)
+            text = re.sub(r'(?i)^Ɣ\s*хвосты\b', 'Ɣ Хвосты', text)
+            text = re.sub(r'(?i)^Ɣ\s*исходное\b', 'Ɣ Исходное', text)
+            return text
+
+        df = df.rename(columns=normalize_name)
+        return df
 
     def _read_csv_with_fallback(self, file_path):
         last_error = None
