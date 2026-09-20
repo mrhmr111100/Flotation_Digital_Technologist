@@ -106,21 +106,137 @@ class CompareModelsDialog(QDialog):
 
 
 class OptimizationDialog(QDialog):
+    OPTIMIZATION_FIELDS = [
+        ("editTimeMin", "editTimeMax", "editFlotationTime", "Время флотации"),
+        ("editFrequencyMin", "editFrequencyMax", "editImpellerFrequency", "Частота вращения импеллера"),
+        ("editAirMin", "editAirMax", "editAirFlow", "Расход воздуха"),
+        ("editCollectorMin", "editCollectorMax", "editCollectorFlow", "Расход собирателя"),
+        ("editFrotherMin", "editFrotherMax", "editFrotherFlow", "Расход пенообразователя"),
+    ]
+
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(ui_path("dialog_optimization.ui", "dialog_optimization(3).ui", "dialog_optimization(2).ui"), self)
         self.parent_window = parent
+        self._set_constraint_placeholders()
         self.btnRunOptimization.clicked.connect(self.run_optimization)
 
+    def _set_constraint_placeholders(self):
+        ranges = getattr(self.parent_window, "forecast_ranges", {})
+        for min_name, max_name, field_name, _ in self.OPTIMIZATION_FIELDS:
+            minimum_widget = getattr(self, min_name, None)
+            maximum_widget = getattr(self, max_name, None)
+            limits = ranges.get(field_name)
+            if minimum_widget is None or maximum_widget is None:
+                continue
+            if limits is None:
+                minimum_widget.setPlaceholderText("мин")
+                maximum_widget.setPlaceholderText("макс")
+                continue
+            minimum, maximum = limits
+            minimum_widget.setPlaceholderText(self.parent_window._format_range_hint(minimum))
+            maximum_widget.setPlaceholderText(self.parent_window._format_range_hint(maximum))
+            hint = f"Диапазон обучающих данных: {self.parent_window._format_range_value(minimum)}-{self.parent_window._format_range_value(maximum)}"
+            minimum_widget.setToolTip(hint)
+            maximum_widget.setToolTip(hint)
+
     def run_optimization(self):
-        """Минимальная рабочая заглушка оптимизации: не ломает старый интерфейс и даёт отклик кнопке."""
-        self.btnRunOptimization.setText("Готово")
-        if self.parent_window is not None:
+        if self.parent_window is None or self.parent_window.training_df is None:
+            self._show_error("Сначала загрузите данные для обучения модели.")
+            return
+
+        bounds = []
+        try:
+            for min_name, max_name, _, title in self.OPTIMIZATION_FIELDS:
+                minimum = self._read_number(min_name, title)
+                maximum = self._read_number(max_name, title)
+                if minimum >= maximum:
+                    raise ValueError(f"Для поля «{title}» минимум должен быть меньше максимума.")
+                bounds.append((minimum, maximum))
+        except ValueError as exc:
+            self._show_error(str(exc))
+            return
+
+        self.btnRunOptimization.setEnabled(False)
+        self.btnRunOptimization.setText("Расчёт...")
+        QApplication.processEvents()
+
+        try:
+            method = self.comboOptimizationMethod.currentText()
+            if method == "Grid Search":
+                best_values, best_prediction = self._grid_search(bounds)
+            elif method == "Differential Evolution":
+                best_values, best_prediction = self._differential_evolution(bounds)
+            else:
+                raise ValueError("Выберите метод оптимизации.")
+
+            for (_, _, field_name, _), value in zip(self.OPTIMIZATION_FIELDS, best_values):
+                getattr(self.parent_window, field_name).setText(f"{value:.6g}")
+
+            self.parent_window.calculate_forecast()
             self.parent_window.set_forecast_status(
-                "Предупреждение",
-                "оптимизация пока подключена как демонстрационный модуль",
-                "#ff9900",
+                "Оптимизация завершена",
+                f"максимальный прогноз: {best_prediction:.4f}",
+                "#3bb54a",
             )
+            self.btnRunOptimization.setText("Готово")
+        except Exception as exc:
+            self._show_error(f"Не удалось выполнить оптимизацию: {exc}")
+            self.btnRunOptimization.setText("Запустить оптимизацию")
+        finally:
+            self.btnRunOptimization.setEnabled(True)
+
+    def _read_number(self, widget_name, title):
+        text = getattr(self, widget_name).text().strip().replace(",", ".")
+        if not text:
+            raise ValueError(f"Заполните оба ограничения для поля «{title}».")
+        try:
+            value = float(text)
+        except ValueError as exc:
+            raise ValueError(f"Ограничение для поля «{title}» должно быть числом.") from exc
+        if not np.isfinite(value):
+            raise ValueError(f"Ограничение для поля «{title}» должно быть конечным числом.")
+        return value
+
+    def _evaluate(self, values):
+        value_map = {
+            field_name: value
+            for (_, _, field_name, _), value in zip(self.OPTIMIZATION_FIELDS, values)
+        }
+        prediction, message = self.parent_window.predict_concentrate(value_map)
+        if prediction is None:
+            raise ValueError(message)
+        return float(prediction)
+
+    def _grid_search(self, bounds):
+        import itertools
+
+        points = [np.linspace(minimum, maximum, 3) for minimum, maximum in bounds]
+        best_values = None
+        best_prediction = -np.inf
+        for values in itertools.product(*points):
+            prediction = self._evaluate(values)
+            if prediction > best_prediction:
+                best_values = values
+                best_prediction = prediction
+        return best_values, best_prediction
+
+    def _differential_evolution(self, bounds):
+        from scipy.optimize import differential_evolution
+
+        result = differential_evolution(
+            lambda values: -self._evaluate(values),
+            bounds=bounds,
+            seed=42,
+            maxiter=12,
+            popsize=5,
+            polish=True,
+            workers=1,
+        )
+        return result.x, -float(result.fun)
+
+    def _show_error(self, text):
+        QMessageBox.warning(self, "Оптимизация", text)
 
 
 class MainWindow(QMainWindow):
@@ -161,6 +277,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         uic.loadUi(ui_path("digital_technologist.ui", "digital_technologist(4).ui", "digital_technologist(3).ui"), self)
         self._apply_forecast_layout()
+        self.resultValue.setText("—")
 
         self.forecast_df = None
         self.training_df = None
@@ -168,6 +285,7 @@ class MainWindow(QMainWindow):
         self.feature_columns = []
         self.column_select_mode = "target"
         self.last_prediction_result = None
+        self.forecast_ranges = {}
 
         self._set_numeric_validators()
         self._setup_forecast_tab_old_design()
@@ -208,6 +326,7 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+        self.update_forecast_ranges()
         self.set_forecast_status("Готово", "заполните параметры и нажмите «Рассчитать прогноз»", "#3b6fb6")
 
 
@@ -332,7 +451,83 @@ class MainWindow(QMainWindow):
     def on_forecast_input_changed(self, _value):
         if hasattr(self, 'resultValue'):
             self.resultValue.setText('—')
-        self.set_forecast_status('Изменение параметров', 'Нажмите «Рассчитать прогноз» для обновления результата.', '#3b6fb6')
+        warnings = self.validate_forecast_ranges()
+        if warnings:
+            self.set_forecast_status('Предупреждение', '; '.join(warnings), '#d9534f')
+        else:
+            self.set_forecast_status('Изменение параметров', 'Нажмите «Рассчитать прогноз» для обновления результата.', '#3b6fb6')
+
+    def update_forecast_ranges(self):
+        self.forecast_ranges = {}
+        used_fields = set()
+
+        if self.training_df is not None:
+            for column in self.feature_columns:
+                field_name = self.find_field_for_column(column, {
+                    field: 0 for field in self.FORECAST_FIELDS
+                }, used_fields)
+                if field_name is None:
+                    remaining = [field for field in self.FORECAST_FIELDS if field not in used_fields]
+                    field_name = remaining[0] if remaining else None
+                if field_name is None:
+                    continue
+
+                values = self.training_df[column].astype(str).str.replace(",", ".", regex=False)
+                values = pd.to_numeric(values.str.replace("\u00a0", "", regex=False).str.strip(), errors="coerce")
+                values = values.dropna()
+                if not values.empty:
+                    self.forecast_ranges[field_name] = (float(values.min()), float(values.max()))
+                used_fields.add(field_name)
+
+        for field_name in self.FORECAST_FIELDS:
+            field = getattr(self, field_name, None)
+            if field is None:
+                continue
+            limits = self.forecast_ranges.get(field_name)
+            if limits is None:
+                field.setPlaceholderText("нет данных")
+            else:
+                field.setPlaceholderText(
+                    f"{self._format_range_hint(limits[0])}-{self._format_range_hint(limits[1])}"
+                )
+            self._set_field_range_warning(field, False)
+
+    @staticmethod
+    def _format_range_value(value):
+        return f"{value:.6g}"
+
+    @staticmethod
+    def _format_range_hint(value):
+        if float(value).is_integer() and abs(value) < 1_000_000:
+            return str(int(value))
+        return f"{value:.3g}"
+
+    def validate_forecast_ranges(self):
+        warnings = []
+        for field_name, (minimum, maximum) in self.forecast_ranges.items():
+            field = getattr(self, field_name, None)
+            if field is None or not field.text().strip():
+                continue
+            try:
+                value = float(field.text().strip().replace(",", "."))
+            except ValueError:
+                continue
+            outside = value < minimum or value > maximum
+            self._set_field_range_warning(field, outside)
+            if outside:
+                warnings.append(
+                    f"«{self.FIELD_TITLES[field_name]}»: допустимо {self._format_range_value(minimum)}–{self._format_range_value(maximum)}"
+                )
+        return warnings
+
+    @staticmethod
+    def _set_field_range_warning(field, warning):
+        if warning:
+            field.setStyleSheet("QLineEdit { border: 2px solid #d9534f; }")
+            field.setToolTip("Значение вне диапазона обучающих данных")
+        else:
+            field.setStyleSheet("")
+            field.setToolTip("")
 
     def _hide_forecast_data_controls_keep_space(self):
         
@@ -606,6 +801,7 @@ class MainWindow(QMainWindow):
             return
 
         self.training_df = df
+        self.update_forecast_ranges()
         self.clear_column_selection(update_status=False)
         self.fill_table_preview(self.tableTrainingPreview, df)
         self.set_column_mode("target")
@@ -669,6 +865,7 @@ class MainWindow(QMainWindow):
         self.feature_columns = [col for col in self.feature_columns if col != column_name]
         self.lblTargetColumn.setText(column_name)
         self.update_feature_list()
+        self.update_forecast_ranges()
         self.set_training_status(f"Выбрана целевая переменная: {column_name}")
 
     def _toggle_feature_column(self, column_name):
@@ -683,6 +880,7 @@ class MainWindow(QMainWindow):
             self.feature_columns.append(column_name)
             self.set_training_status(f"Параметр добавлен: {column_name}")
         self.update_feature_list()
+        self.update_forecast_ranges()
 
     def update_feature_list(self):
         self.listFeatureColumns.clear()
@@ -691,8 +889,12 @@ class MainWindow(QMainWindow):
     def clear_column_selection(self, update_status=True):
         self.target_column = None
         self.feature_columns = []
+        self.last_prediction_result = None
         self.lblTargetColumn.setText("Не выбрано")
         self.listFeatureColumns.clear()
+        self.resultValue.setText("—")
+        self.btnOptimization.setEnabled(False)
+        self.update_forecast_ranges()
         if update_status:
             self.set_training_status("Выбор столбцов очищен.")
 
@@ -746,6 +948,12 @@ class MainWindow(QMainWindow):
         if not values:
             self.resultValue.setText("—")
             self.set_forecast_status("Ошибка", "заполните хотя бы один параметр числом", "#d9534f")
+            return
+
+        warnings = self.validate_forecast_ranges()
+        if warnings:
+            self.resultValue.setText("—")
+            self.set_forecast_status("Ошибка", "; ".join(warnings), "#d9534f")
             return
 
         prediction, source = self.predict_concentrate(values)

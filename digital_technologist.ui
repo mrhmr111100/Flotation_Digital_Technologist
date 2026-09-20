@@ -416,7 +416,7 @@ QFrame#messageFrame {
            <item>
             <widget class="QLabel" name="resultValue">
              <property name="text">
-              <string>12.71</string>
+              <string>—</string>
              </property>
             </widget>
            </item>
